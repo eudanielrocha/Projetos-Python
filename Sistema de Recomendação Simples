@@ -1,0 +1,92 @@
+import numpy as np
+import pandas as pd
+from sklearn.metrics.pairwise import cosine_similarity
+
+class RecommendationSystem:
+    def __init__(self, ratings_file):
+        """
+        Inicializa o sistema de recomendação com dados de avaliações.
+        
+        :param ratings_file: Arquivo CSV com avaliações de usuários
+        """
+        self.ratings_df = pd.read_csv(ratings_file)
+        self.user_item_matrix = self._create_user_item_matrix()
+        self.similarity_matrix = self._compute_user_similarity()
+    
+    def _create_user_item_matrix(self):
+        """
+        Cria uma matriz de usuários e itens com suas avaliações.
+        
+        :return: Matriz de usuários e itens
+        """
+        pivot_table = self.ratings_df.pivot(
+            index='user_id', 
+            columns='item_id', 
+            values='rating'
+        ).fillna(0)
+        return pivot_table
+    
+    def _compute_user_similarity(self):
+        """
+        Computa a similaridade entre usuários usando cosine similarity.
+        
+        :return: Matriz de similaridade entre usuários
+        """
+        return cosine_similarity(self.user_item_matrix)
+    
+    def get_recommendations(self, user_id, n_recommendations=5):
+        """
+        Gera recomendações para um usuário específico.
+        
+        :param user_id: ID do usuário
+        :param n_recommendations: Número de recomendações
+        :return: Lista de itens recomendados
+        """
+        if user_id not in self.user_item_matrix.index:
+            return []
+        
+        # Índice do usuário na matriz
+        user_index = self.user_item_matrix.index.get_loc(user_id)
+        
+        # Similaridade deste usuário com outros
+        user_similarities = self.similarity_matrix[user_index]
+        
+        # Itens que o usuário ainda não avaliou
+        unrated_items = self.user_item_matrix.columns[
+            self.user_item_matrix.loc[user_id] == 0
+        ]
+        
+        # Pontuação para recomendações
+        recommendations = {}
+        for item in unrated_items:
+            item_index = self.user_item_matrix.columns.get_loc(item)
+            weighted_ratings = self.user_item_matrix.iloc[:, item_index] * user_similarities
+            recommendations[item] = weighted_ratings.sum()
+        
+        # Ordena e retorna top recomendações
+        sorted_recommendations = sorted(
+            recommendations.items(), 
+            key=lambda x: x[1], 
+            reverse=True
+        )
+        
+        return [item for item, score in sorted_recommendations[:n_recommendations]]
+    
+    def export_recommendations(self, user_id, filename='recommendations.txt'):
+        """
+        Exporta recomendações para um arquivo.
+        
+        :param user_id: ID do usuário
+        :param filename: Nome do arquivo de saída
+        """
+        recommendations = self.get_recommendations(user_id)
+        with open(filename, 'w') as f:
+            f.write(f"Recomendações para Usuário {user_id}:\n")
+            for item in recommendations:
+                f.write(f"- Item {item}\n")
+
+# Exemplo de uso
+if __name__ == '__main__':
+    recommender = RecommendationSystem('avaliacoes.csv')
+    recomendacoes = recommender.get_recommendations(user_id=123)
+    recommender.export_recommendations(user_id=123)
