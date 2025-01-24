@@ -1,0 +1,93 @@
+import requests
+from bs4 import BeautifulSoup
+import csv
+import json
+from datetime import datetime
+
+class WebScraper:
+    def __init__(self, url):
+        """
+        Inicializa o scraper com uma URL específica.
+        
+        :param url: URL do site a ser raspado
+        """
+        self.url = url
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+    
+    def fetch_content(self):
+        """
+        Busca o conteúdo da página web.
+        
+        :return: Conteúdo HTML da página
+        """
+        try:
+            response = requests.get(self.url, headers=self.headers)
+            response.raise_for_status()
+            return response.text
+        except requests.RequestException as e:
+            print(f"Erro ao buscar conteúdo: {e}")
+            return None
+    
+    def parse_content(self, html_content):
+        """
+        Analisa o conteúdo HTML.
+        
+        :param html_content: Conteúdo HTML para análise
+        :return: Lista de dicionários com dados extraídos
+        """
+        soup = BeautifulSoup(html_content, 'html.parser')
+        # Exemplo: extrair títulos de notícias (personalizar conforme o site)
+        articles = soup.find_all('article')
+        
+        scraped_data = []
+        for article in articles:
+            title = article.find('h2')
+            link = article.find('a')
+            
+            if title and link:
+                scraped_data.append({
+                    'title': title.text.strip(),
+                    'link': link.get('href'),
+                    'scraped_at': datetime.now().isoformat()
+                })
+        
+        return scraped_data
+    
+    def export_to_csv(self, data, filename='scraped_data.csv'):
+        """
+        Exporta dados para um arquivo CSV.
+        
+        :param data: Dados para exportação
+        :param filename: Nome do arquivo de saída
+        """
+        if not data:
+            print("Sem dados para exportar.")
+            return
+        
+        keys = data[0].keys()
+        with open(filename, 'w', newline='', encoding='utf-8') as output_file:
+            dict_writer = csv.DictWriter(output_file, keys)
+            dict_writer.writeheader()
+            dict_writer.writerows(data)
+    
+    def export_to_json(self, data, filename='scraped_data.json'):
+        """
+        Exporta dados para um arquivo JSON.
+        
+        :param data: Dados para exportação
+        :param filename: Nome do arquivo de saída
+        """
+        with open(filename, 'w', encoding='utf-8') as output_file:
+            json.dump(data, output_file, ensure_ascii=False, indent=4)
+
+# Exemplo de uso
+if __name__ == '__main__':
+    scraper = WebScraper('https://exemplo.com/noticias')
+    html_content = scraper.fetch_content()
+    
+    if html_content:
+        scraped_data = scraper.parse_content(html_content)
+        scraper.export_to_csv(scraped_data)
+        scraper.export_to_json(scraped_data)
