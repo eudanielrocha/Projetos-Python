@@ -1,0 +1,58 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+class DataAnalyzer:
+    def __init__(self, csv_file):
+        """
+        Inicializa o analisador de dados com um arquivo CSV.
+        
+        :param csv_file: Caminho para o arquivo CSV a ser analisado
+        """
+        self.df = pd.read_csv(csv_file)
+    
+    def basic_stats(self):
+        """
+        Realiza análise estatística básica dos dados.
+        
+        :return: Dicionário com estatísticas descritivas
+        """
+        return {
+            'total_rows': len(self.df),
+            'columns': list(self.df.columns),
+            'basic_stats': self.df.describe().to_dict()
+        }
+    
+    def visualize_distribution(self, column, output_file='distribution.png'):
+        """
+        Cria um histograma para visualizar a distribuição de uma coluna.
+        
+        :param column: Nome da coluna para análise
+        :param output_file: Arquivo de saída para o gráfico
+        """
+        plt.figure(figsize=(10, 6))
+        self.df[column].hist(bins=30)
+        plt.title(f'Distribuição de {column}')
+        plt.xlabel(column)
+        plt.ylabel('Frequência')
+        plt.savefig(output_file)
+        plt.close()
+    
+    def filter_and_export(self, condition, output_file='filtered_data.csv'):
+        """
+        Filtra dados baseado em uma condição e exporta para um novo CSV.
+        
+        :param condition: Condição de filtragem (expressão pandas)
+        :param output_file: Arquivo de saída para dados filtrados
+        """
+        filtered_df = self.df[condition]
+        filtered_df.to_csv(output_file, index=False)
+        return len(filtered_df)
+
+# Exemplo de uso
+if __name__ == '__main__':
+    # Exemplo de como usar a classe
+    analyzer = DataAnalyzer('dados_exemplo.csv')
+    print(analyzer.basic_stats())
+    analyzer.visualize_distribution('idade')
+    filtered_count = analyzer.filter_and_export(self.df['salario'] > 5000)
+    print(f"Registros filtrados: {filtered_count}")
